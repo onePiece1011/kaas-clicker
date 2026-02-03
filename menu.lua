@@ -1,24 +1,53 @@
-local menu
-local speler1
-local buttons 
-function love.load()
-    -- Kleuren en fonts
-    yellow = {1, 1, 0}
-    white = {1, 1, 1}
-    font = love.graphics.newFont(32)
-    love.graphics.setFont(font)
+display.setStatusBar(display.HiddenStatusBar)
 
-    buttons = {
-        {text = "Start Game", x = 100, y = 200, w = 300, h = 60},
-        {text = "Fast Game Mode", x = 100, y = 280, w = 300, h = 60},
-        {text = "Resume Game", x = 100, y = 360, w = 300, h = 60}
-    }
+-- Telefoon staand formaat
+local centerX = display.contentCenterX
+local centerY = display.contentCenterY
+local screenW = display.actualContentWidth
+local screenH = display.actualContentHeight
+
+-- Kleuren
+local cheeseYellow = {1, 0.9, 0.4}
+local black = {0, 0, 0}
+local white = {1, 1, 1}
+
+-- Achtergrond
+local bg = display.newImageRect("background.png", screenW, screenH)
+bg.x = centerX
+bg.y = centerY
+
+-- Titel
+local title = display.newText({
+    text = "Cheese Clicker",
+    x = centerX,
+    y = 150,
+    font = native.systemFontBold,
+    fontSize = 70
+})
+title:setFillColor(1, 1, 1)
+
+-- Functie om knoppen te maken
+local function createButton(text, yPos)
+    local buttonGroup = display.newGroup()
+
+    local rect = display.newRoundedRect(buttonGroup, centerX, yPos, 500, 120, 30)
+    rect:setFillColor(unpack(cheeseYellow))
+
+    local label = display.newText({
+        parent = buttonGroup,
+        text = text,
+        x = centerX,
+        y = yPos,
+        font = native.systemFontBold,
+        fontSize = 40
+    })
+    label:setFillColor(0, 0, 0)
+
+    return buttonGroup
 end
 
-local bg = display.newImage(".png")
-bg.x = display.contentCenterX
-bg.y = display.contentCenterY
-
--- Optioneel: schaal de afbeelding zodat hij het hele scherm vult
-bg.width = display.actualContentWidth
-bg.height = display.actualContentHeight
+-- Knoppen
+local btnStart = createButton("Start Game", 450)
+local btnFast = createButton("Fast Click Version", 600)
+local btnResume = createButton("Resume Game", 750)
+local btnCredits = createButton("Credits", 900)
