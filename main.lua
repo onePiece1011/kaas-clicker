@@ -131,7 +131,7 @@ local function startFrenzyClicker()
         text = "Frenzy Actief!",
         x = display.contentCenterX,
         y = display.contentCenterY - 200,
-        fontSize = 50
+        fontSize = 40
     }
     timer.performWithDelay(5000, function() frenzyactive = false end, 1)
     timer.performWithDelay(5000, function() FrenzyNotifier:removeSelf() end, 1)
