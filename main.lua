@@ -13,36 +13,40 @@ local kaaswinkelcost = 500
 local numberText = display.newText({
     text = "Kaas: 0",
     x = display.contentCenterX,
-    y = display.contentCenterY - 50,
-    fontSize = 40
+    y = display.contentCenterY - 100,
+    fontSize = 20
 })
+
+kaasimage = display.newImageRect("images/kaas.png", 100, 100)
+kaasimage.x = display.contentCenterX
+kaasimage.y = display.contentCenterY - 25
 
 
 local buyKoeButton = display.newRect(display.contentCenterX, display.contentCenterY + 90, 200, 50)
-buyKoeButton:setFillColor(0.4, 0.8, 0.2)
+buyKoeButton:setFillColor(0, 0, 0)
 local buykoetext = display.newText({
-    text = "Koop Koe ( " .. koecost .. " kaas )",
+    text = "Koop Koe (" .. koecost .. " kaas)",
     x = buyKoeButton.x,
     y = buyKoeButton.y,
-    fontSize = 20
+    fontSize = 10
 })
 
 local buyBoerButton = display.newRect(display.contentCenterX, display.contentCenterY + 150, 200, 50)
-buyBoerButton:setFillColor(0.4, 0.8, 0.2)
+buyBoerButton:setFillColor(0, 0, 0)
 local buyboertext = display.newText({
-    text = "Koop Boer ( " .. boercost .. " kaas )",
+    text = "Koop Boer (" .. boercost .. " kaas)",
     x = buyBoerButton.x,
     y = buyBoerButton.y,
-    fontSize = 20
+    fontSize = 10
 })
 
 local buyKaasWinkelButton = display.newRect(display.contentCenterX, display.contentCenterY + 210, 200, 50)
-buyKaasWinkelButton:setFillColor(0.4, 0.8, 0.2)
+buyKaasWinkelButton:setFillColor(0, 0, 0)
 local buykaaswinkeltext = display.newText({
-    text = "Koop Kaaswinkel ( " .. kaaswinkelcost .. " kaas )",
+    text = "Koop Kaaswinkel (" .. kaaswinkelcost .. " kaas)",
     x = buyKaasWinkelButton.x,
     y = buyKaasWinkelButton.y,
-    fontSize = 20
+    fontSize = 10
 })
 
 local function koopkoe()
@@ -109,7 +113,7 @@ local function onScreenTap()
     end
 end 
 
-Runtime:addEventListener("tap", onScreenTap)
+kaasimage:addEventListener("tap", onScreenTap)
 buyKoeButton:addEventListener("tap", koopkoe)
 buyBoerButton:addEventListener("tap", koopboer)
 buyKaasWinkelButton:addEventListener("tap", koopkaaswinkel)
@@ -126,7 +130,7 @@ local function startFrenzyClicker()
     FrenzyNotifier = display.newText {
         text = "Frenzy Actief!",
         x = display.contentCenterX,
-        y = display.contentCenterY - 100,
+        y = display.contentCenterY - 200,
         fontSize = 50
     }
     timer.performWithDelay(5000, function() frenzyactive = false end, 1)
