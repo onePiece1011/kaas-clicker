@@ -14,3 +14,11 @@ function love.load()
         {text = "Resume Game", x = 100, y = 360, w = 300, h = 60}
     }
 end
+
+local bg = display.newImage(".png")
+bg.x = display.contentCenterX
+bg.y = display.contentCenterY
+
+-- Optioneel: schaal de afbeelding zodat hij het hele scherm vult
+bg.width = display.actualContentWidth
+bg.height = display.actualContentHeight
