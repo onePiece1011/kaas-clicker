@@ -16,12 +16,12 @@ local numberText = display.newText({
     y = display.contentCenterY - 100,
     fontSize = 20
 })
-
+-- kaas afbeelding
 kaasimage = display.newImageRect("images/kaas.png", 100, 100)
 kaasimage.x = display.contentCenterX
 kaasimage.y = display.contentCenterY - 25
 
-
+--koop knoppen
 local buyKoeButton = display.newRect(display.contentCenterX, display.contentCenterY + 90, 200, 50)
 buyKoeButton:setFillColor(0, 0, 0)
 local buykoetext = display.newText({
@@ -48,7 +48,7 @@ local buykaaswinkeltext = display.newText({
     y = buyKaasWinkelButton.y,
     fontSize = 10
 })
-
+-- koop functies
 local function koopkoe()
     if kaas >= koecost then
         koe = koe + 1
@@ -112,30 +112,30 @@ local function onScreenTap()
         numberText.text = "Kaas: " .. kaas
     end
 end 
-
+-- event listeners
 kaasimage:addEventListener("tap", onScreenTap)
 buyKoeButton:addEventListener("tap", koopkoe)
 buyBoerButton:addEventListener("tap", koopboer)
 buyKaasWinkelButton:addEventListener("tap", koopkaaswinkel)
-
+-- kaaswinkel productie functie
 local function kaaswinkelProduction()
     if kaaswinkel >= 1 then
         kaas = kaas + (2 * kaaswinkel)
         numberText.text = "Kaas: " .. kaas
     end
 end
-
+-- frenzy functie
 local function startFrenzyClicker()
     frenzyactive = true
     FrenzyNotifier = display.newText {
         text = "Frenzy Actief!",
         x = display.contentCenterX,
         y = display.contentCenterY - 200,
-        fontSize = 40
+        fontSize = 50
     }
     timer.performWithDelay(5000, function() frenzyactive = false end, 1)
     timer.performWithDelay(5000, function() FrenzyNotifier:removeSelf() end, 1)
 end
-
+-- timers
 timer.performWithDelay(1000, kaaswinkelProduction, 0)
 timer.performWithDelay(30000, startFrenzyClicker, 0)
