@@ -33,7 +33,7 @@ startBg:setFillColor(0.95, 0.85, 0.6)
 startScreen:insert(startBg)
 
 local startTitle = display.newText({
-    text = "CHEESE\nCLICKER",
+    text = "KAAS\nCLICKER",
     x = centerX,
     y = centerY - 150,
     font = native.systemFontBold,
@@ -119,7 +119,7 @@ local numberText = display.newText({
 numberText:setFillColor(0.4, 0.2, 0)
 gameScreen:insert(numberText)
 
--- Kaas foto 
+-- Kaas foto (klikbare kaas)
 kaasimage = display.newImageRect("images/kaas.png", 140, 140)
 kaasimage.x = screenW * 0.3
 kaasimage.y = centerY
@@ -147,7 +147,7 @@ local function createUpgradeButton(name, cost, yPos, costVar)
     return btnBg, btnText
 end
 
--- Upgrade buttons
+-- Upgrade buttons in sidebar
 local buyKoeButton, buykoetext = createUpgradeButton("Koe 🐄", koecost, 100, koecost)
 local buyBoerButton, buyboertext = createUpgradeButton("Boer 👨‍🌾", boercost, 190, boercost)
 local buyKaasWinkelButton, buykaaswinkeltext = createUpgradeButton("Kaaswinkel 🏪", kaaswinkelcost, 280, kaaswinkelcost)
