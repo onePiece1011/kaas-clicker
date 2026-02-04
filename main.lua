@@ -116,7 +116,7 @@ local cheeseIcon = display.newText({
     text = "🧀",
     x = centerX,
     y = centerY - 170,
-    fontSize = 0
+    fontSize = 50
 })
 startScreen:insert(cheeseIcon)
 
