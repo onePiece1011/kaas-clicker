@@ -1,3 +1,16 @@
+display.setStatusBar(display.HiddenStatusBar)
+
+local json = require("json")
+
+local centerX = display.contentCenterX
+local centerY = display.contentCenterY
+local screenW = display.actualContentWidth
+local screenH = display.actualContentHeight
+
+local cheeseYellow = {1, 0.9, 0.4}
+local black = {0, 0, 0}
+local white = {1, 1, 1}
+
 local kaas = 0
 local totalclicks = 1
 local koe = 0
@@ -9,24 +22,22 @@ local koecost = 50
 local boercost = 200
 local kaaswinkelcost = 500
 
-display.setStatusBar(display.HiddenStatusBar)
--- JSON bibliotheek voor opslaan/laden
-local json = require("json")
--- Screen dimensies
-local centerX = display.contentCenterX
-local centerY = display.contentCenterY
-local screenW = display.actualContentWidth
-local screenH = display.actualContentHeight
+local productionTimer = nil
+local frenzyTimer = nil
+local autoSaveTimer = nil
 
--- kleuren
-local cheeseYellow = {1, 0.9, 0.4}
-local black = {0, 0, 0}
-local white = {1, 1, 1}
+local leaderboardFile = "challenge_leaderboard.json"
+local leaderboard = {}
+local challengeTimerId = nil
+local challengeCountdown = 0
+local challengeScore = 0
+local challengeName = ""
+local challengeLength = 0
+local times = {1,2,3,4,5,10,15,20,25,30}
 
--- Voor save files
-local json = require("json")
+local times = {1,2,3,4,5,10,15,20,25,30}
 
--- Functie om game data op te slaan
+
 local function saveGame()
     local path = system.pathForFile("Cheese_data.json", system.DocumentsDirectory)
     local file = io.open(path, "w")
@@ -49,7 +60,28 @@ local function saveGame()
     end
 end
 
--- Functie om game data te laden
+local function saveGame()
+    local path = system.pathForFile("Cheese_data.json", system.DocumentsDirectory)
+    local file = io.open(path, "w")
+    
+    if file then
+        local gameData = {
+            kaas = kaas,
+            totalclicks = totalclicks,
+            koe = koe,
+            boer = boer,
+            kaaswinkel = kaaswinkel,
+            koecost = koecost,
+            boercost = boercost,
+            kaaswinkelcost = kaaswinkelcost
+        }
+        
+        file:write(json.encode(gameData))
+        io.close(file)
+        print("Game opgeslagen!")
+    end
+end
+
 local function loadGame()
     local path = system.pathForFile("Cheese_data.json", system.DocumentsDirectory)
     local file = io.open(path, "r")
@@ -77,7 +109,6 @@ local function loadGame()
     return false
 end
 
--- Functie om te checken of er een save bestand bestaat
 local function hasSaveFile()
     local path = system.pathForFile("Cheese_data.json", system.DocumentsDirectory)
     local file = io.open(path, "r")
@@ -88,15 +119,43 @@ local function hasSaveFile()
     return false
 end
 
--- display groepen
+local function loadLeaderboard()
+    local path = system.pathForFile(leaderboardFile, system.DocumentsDirectory)
+    local OpenLeaderBoardPath = io.open(path, "r")
+    if OpenLeaderBoardPath then
+        local contents = OpenLeaderBoardPath:read("*a")
+        io.close(OpenLeaderBoardPath)
+        local data = json.decode(contents)
+        if data then leaderboard = data end
+    end
+end
+
+local function saveLeaderboard()
+    local path = system.pathForFile(leaderboardFile, system.DocumentsDirectory)
+    local OpenLeaderBoardPath = io.open(path, "w")
+    if OpenLeaderBoardPath then
+        OpenLeaderBoardPath:write(json.encode(leaderboard))
+        io.close(OpenLeaderBoardPath)
+    end
+end
+
+loadLeaderboard()
+
+
 local startScreen = display.newGroup()
 local creditsScreen = display.newGroup()
 local gameScreen = display.newGroup()
 local ChallengeModeScreen = display.newGroup()
-gameScreen.isVisible = false  -- Verstopt het game scherm bij start
-creditsScreen.isVisible = false  -- Verstopt credits scherm bij start
+local challengePlay = display.newGroup()
+local challengeEnd = display.newGroup()
 
--- start scherm elementen
+gameScreen.isVisible = false
+creditsScreen.isVisible = false
+ChallengeModeScreen.isVisible = false
+challengePlay.isVisible = false
+challengeEnd.isVisible = false
+
+
 local startBg = display.newRect(centerX, centerY, screenW, screenH)
 startBg:setFillColor(0.95, 0.85, 0.6)
 startScreen:insert(startBg)
@@ -153,17 +212,27 @@ local challengeText = display.newText({
 challengeText:setFillColor(1, 1, 1)
 startScreen:insert(challengeText)
 
+local creditButton = display.newRoundedRect(centerX, centerY + 160, 250, 70, 12)
+creditButton:setFillColor(0.3, 0.3, 0.3)
+creditButton.strokeWidth = 3
+creditButton:setStrokeColor(0.5, 0.5, 0.5)
+startScreen:insert(creditButton)
+
+local creditText = display.newText({
+    text = "CREDITS",
+    x = centerX,
+    y = centerY + 160,
+    font = native.systemFontBold,
+    fontSize = 30
+})
+creditText:setFillColor(1, 1, 1)
+startScreen:insert(creditText)
 
 
--- Credits scherm elementen
--- Credits scherm elementen (geüpdatet styling)
-
--- Donkere overlay achtergrond
 local creditsBg = display.newRect(centerX, centerY, screenW, screenH)
 creditsBg:setFillColor(0, 0, 0, 0.92)
 creditsScreen:insert(creditsBg)
 
--- Panel voor content
 local panelMargin = 40
 local panel = display.newRoundedRect(centerX, centerY, screenW - panelMargin * 2, screenH - 160, 12)
 panel:setFillColor(0.06, 0.04, 0.02)
@@ -171,7 +240,6 @@ panel.strokeWidth = 2
 panel:setStrokeColor(0.12, 0.08, 0.02)
 creditsScreen:insert(panel)
 
--- Header met klein icoon
 local headerY = panel.y - panel.height/2 + 50
 local cheeseIconSmall = display.newText({ text = "🧀", x = centerX - 80, y = headerY, font = native.systemFontBold, fontSize = 36 })
 creditsScreen:insert(cheeseIconSmall)
@@ -187,12 +255,10 @@ local creditsTitle = display.newText({
 creditsTitle:setFillColor(1, 0.85, 0.3)
 creditsScreen:insert(creditsTitle)
 
--- Scheidingslijn
 local divider = display.newRect(centerX, creditsTitle.y + 30, panel.width - 40, 2)
 divider:setFillColor(0.18, 0.18, 0.18)
 creditsScreen:insert(divider)
 
--- Content: makers en bedanktekst netjes uitgelijnd
 local contentYStart = divider.y + 30
 local lineSpacing = 32
 
@@ -212,7 +278,6 @@ local thanks = display.newText({ text = "Bedankt voor het spelen!", x = centerX,
 thanks:setFillColor(1, 1, 1)
 creditsScreen:insert(thanks)
 
--- Terug knop als ronde knop onderaan paneel
 local backBtnBg = display.newRoundedRect(centerX, panel.y + panel.height/2 - 40, 160, 48, 10)
 backBtnBg:setFillColor(1, 0.6, 0)
 backBtnBg.strokeWidth = 2
@@ -231,66 +296,121 @@ end
 backBtnBg:addEventListener("tap", closeCredits)
 backBtn:addEventListener("tap", closeCredits)
 
--- Credits knop op startscherm (onderaan)
-local creditButton = display.newRoundedRect(centerX, centerY + 160, 250, 70, 12)
-creditButton:setFillColor(0.3, 0.3, 0.3)
-creditButton.strokeWidth = 3
-creditButton:setStrokeColor(0.5, 0.5, 0.5)
-startScreen:insert(creditButton)
 
-local creditText = display.newText({
-    text = "CREDITS",
-    x = centerX,
-    y = centerY + 160,
-    font = native.systemFontBold,
-    fontSize = 30
-})
-creditText:setFillColor(1, 1, 1)
-startScreen:insert(creditText)
+local function endChallenge()
+    if challengeTimerId then timer.cancel(challengeTimerId); challengeTimerId = nil end
+    if challengePlay then
+        for i = challengePlay.numChildren,1,-1 do
+            challengePlay[i]:removeSelf()
+        end
+    end
+    challengePlay.isVisible = false
 
--- Functie voor credits knop - opent credits scherm
-creditButton:addEventListener("tap", function()
-    startScreen.isVisible = false     -- Verberg startscherm
-    creditsScreen.isVisible = true    -- Toon credits scherm
-end)
+    for i = challengeEnd.numChildren,1,-1 do
+        challengeEnd[i]:removeSelf()
+    end
+    challengeEnd.isVisible = true
+    local bg = display.newRect(centerX, centerY, screenW, screenH)
+    bg:setFillColor(0.95, 0.9, 0.7)
+    challengeEnd:insert(bg)
 
--- CHALLENGE MODE IMPLEMENTATIe
--- Leaderboard opslaan/laden
-local leaderboardFile = "challenge_leaderboard.json"
-local leaderboard = {}
+    local title = display.newText({text = "Tijd is om!", x = centerX, y = 80, font = native.systemFontBold, fontSize = 28})
+    title:setFillColor(1,0.2,0.2)
+    challengeEnd:insert(title)
 
-local function loadLeaderboard()
-    local path = system.pathForFile(leaderboardFile, system.DocumentsDirectory)
-    local OpenLeaderBoardPath = io.open(path, "r")
-    if OpenLeaderBoardPath then
-        local contents = OpenLeaderBoardPath:read("*a")
-        io.close(OpenLeaderBoardPath)
-        local data = json.decode(contents)
-        if data then leaderboard = data end
+    local scoreTxt = display.newText({text = "Score: " .. tostring(challengeScore), x = centerX, y = 140, font = native.systemFontBold, fontSize = 22})
+    challengeEnd:insert(scoreTxt)
+
+    if challengeLength == 10 then
+        table.insert(leaderboard, {name = challengeName, score = challengeScore})
+        table.sort(leaderboard, function(a,b) return a.score > b.score end)
+        while #leaderboard > 5 do table.remove(leaderboard) end
+        saveLeaderboard()
+    end
+
+    local restartBtn = display.newRoundedRect(centerX - 80, screenH - 160, 120, 36, 8)
+    restartBtn:setFillColor(1,0.6,0)
+    restartBtn.strokeWidth = 2
+    restartBtn:setStrokeColor(0.8,0.45,0.05)
+    challengeEnd:insert(restartBtn)
+    local restartTxt = display.newText({text = "Herstart", x = restartBtn.x, y = restartBtn.y, font = native.systemFontBold, fontSize = 15})
+    restartTxt:setFillColor(1)
+    challengeEnd:insert(restartTxt)
+
+    local menuBtn = display.newRoundedRect(centerX + 80, screenH - 160, 120, 36, 8)
+    menuBtn:setFillColor(0.2,0.5,0.9)
+    menuBtn.strokeWidth = 2
+    menuBtn:setStrokeColor(0.08,0.35,0.7)
+    challengeEnd:insert(menuBtn)
+    local menuTxt = display.newText({text = "Menu", x = menuBtn.x, y = menuBtn.y, font = native.systemFontBold, fontSize = 15})
+    menuTxt:setFillColor(1)
+    challengeEnd:insert(menuTxt)
+
+    restartBtn:addEventListener("tap", function()
+        challengeEnd.isVisible = false
+        showChallengeSelect()
+    end)
+    menuBtn:addEventListener("tap", function()
+        challengeEnd.isVisible = false
+        startScreen.isVisible = true
+    end)
+
+    if challengeLength == 10 then
+        local lbY = 190
+        local lbTitle = display.newText({text = "Leaderboard", x = centerX, y = lbY, font = native.systemFontBold, fontSize = 18})
+        lbTitle:setFillColor(0)
+        challengeEnd:insert(lbTitle)
+        lbY = lbY + 30
+        for i,entry in ipairs(leaderboard) do
+            local t = display.newText({text = i .. ". " .. entry.name .. " - " .. entry.score, x = centerX, y = lbY, font = native.systemFont, fontSize = 16})
+            t:setFillColor(0.08)
+            challengeEnd:insert(t)
+            lbY = lbY + 26
+        end
     end
 end
 
-local function saveLeaderboard()
-    local path = system.pathForFile(leaderboardFile, system.DocumentsDirectory)
-    local OpenLeaderBoardPath = io.open(path, "w")
-    if OpenLeaderBoardPath then
-        OpenLeaderBoardPath:write(json.encode(leaderboard))
-        io.close(OpenLeaderBoardPath)
+function startChallenge(name, seconds)
+    challengeName = name
+    challengeCountdown = seconds
+    challengeLength = seconds
+    challengeScore = 0
+    
+    for i = challengePlay.numChildren,1,-1 do challengePlay[i]:removeSelf() end
+    challengePlay.isVisible = true
+    
+    local bg = display.newRect(centerX, centerY, screenW, screenH)
+    bg:setFillColor(0.95, 0.9, 0.7)
+    challengePlay:insert(bg)
+    
+    local timerTxt = display.newText({text = tostring(challengeCountdown), x = screenW * 0.3, y = 60, font = native.systemFontBold, fontSize = 28})
+    challengePlay:insert(timerTxt)
+    
+    local scoreTxt = display.newText({text = "0", x = screenW * 0.7, y = 60, font = native.systemFontBold, fontSize = 28})
+    challengePlay:insert(scoreTxt)
+    
+    local kaasC = display.newImageRect("images/kaas.png", 180, 180)
+    kaasC.x = centerX
+    kaasC.y = centerY
+    challengePlay:insert(kaasC)
+
+    local function onTap()
+        challengeScore = challengeScore + 1
+        scoreTxt.text = tostring(challengeScore)
     end
+    kaasC:addEventListener("tap", onTap)
+
+    challengeTimerId = timer.performWithDelay(1000, function()
+        challengeCountdown = challengeCountdown - 1
+        timerTxt.text = tostring(challengeCountdown)
+        if challengeCountdown <= 0 then
+            endChallenge()
+        end
+    end, seconds)
+
+    challengeSelect.isVisible = false
 end
 
-loadLeaderboard()
-
--- Challenge groups
-local challengeSelect = ChallengeModeScreen
-challengeSelect.isVisible = false
-local challengePlay = display.newGroup()
-local challengeEnd = display.newGroup()
-challengePlay.isVisible = false
-challengeEnd.isVisible = false
-
--- Helper to show start screen of challenge mode (tijd kiezen)
-local times = {1,2,3,4,5,10,15,20,25,30}
 local function showChallengeSelect()
     startScreen.isVisible = false
     creditsScreen.isVisible = false
@@ -299,7 +419,7 @@ local function showChallengeSelect()
     challengeEnd.isVisible = false
     challengeSelect:toFront()
     challengeSelect.isVisible = true
-    -- Verwijder alle eerdere kinderen (eenvoudige aanpak)
+    
     for i = challengeSelect.numChildren,1,-1 do
         local child = challengeSelect[i]
         child:removeSelf()
@@ -313,7 +433,7 @@ local function showChallengeSelect()
     title:setFillColor(1,0.6,0)
     challengeSelect:insert(title)
 
-        local title = display.newText({text = "(Kies 10 seconden voor scores)", x = centerX, y = 15, font = native.systemFontBold, fontSize = 12})
+    local title = display.newText({text = "(Kies 10 seconden voor scores)", x = centerX, y = 15, font = native.systemFontBold, fontSize = 12})
     title:setFillColor(0,0.0,0)
     challengeSelect:insert(title)
 
@@ -321,7 +441,6 @@ local function showChallengeSelect()
     instructions:setFillColor(0)
     challengeSelect:insert(instructions)
 
-    -- Tijd keuze knoppen
     local btnW, btnH = 140, 46
     local leftX = centerX - 90
     local rightX = centerX + 90
@@ -345,7 +464,6 @@ local function showChallengeSelect()
 
         local function onSelect()
             if t == 10 then
-                -- Vraag alleen om de naam gedurende 10 seconden: toon een klein invoerpaneel
                 local panel = display.newRoundedRect(centerX, centerY, screenW - 80, 160, 12)
                 panel:setFillColor(0.06,0.04,0.02)
                 panel.strokeWidth = 2
@@ -382,7 +500,6 @@ local function showChallengeSelect()
         b:addEventListener("tap", onSelect)
     end
 
-    -- terug naar menu
     local back = display.newText({text = "Terug", x = centerX, y = screenH - 50, font = native.systemFontBold, fontSize = 18})
     back:setFillColor(0.2)
     challengeSelect:insert(back)
@@ -392,156 +509,16 @@ local function showChallengeSelect()
     end)
 end
 
--- challenge play variabelen
-local challengeTimerId = nil
-local challengeCountdown = 0
-local challengeScore = 0
-local challengeName = ""
-local challengeLength = 0
 
-local function endChallenge()
-    -- stop timer
-    if challengeTimerId then timer.cancel(challengeTimerId); challengeTimerId = nil end
-    -- speelgroep verwijderen
-    if challengePlay then
-        for i = challengePlay.numChildren,1,-1 do
-            challengePlay[i]:removeSelf()
-        end
-    end
-    challengePlay.isVisible = false
-
-    -- toon eindscherm
-    for i = challengeEnd.numChildren,1,-1 do
-        challengeEnd[i]:removeSelf()
-    end
-    challengeEnd.isVisible = true
-    local bg = display.newRect(centerX, centerY, screenW, screenH)
-    bg:setFillColor(0.95, 0.9, 0.7)
-    challengeEnd:insert(bg)
-
-    local title = display.newText({text = "Tijd is om!", x = centerX, y = 80, font = native.systemFontBold, fontSize = 28})
-    title:setFillColor(1,0.2,0.2)
-    challengeEnd:insert(title)
-
-    local scoreTxt = display.newText({text = "Score: " .. tostring(challengeScore), x = centerX, y = 140, font = native.systemFontBold, fontSize = 22})
-    challengeEnd:insert(scoreTxt)
-
-    -- Update het scorebord alleen voor uitdagingen van 10 seconden.
-    if challengeLength == 10 then
-        table.insert(leaderboard, {name = challengeName, score = challengeScore})
-        table.sort(leaderboard, function(a,b) return a.score > b.score end)
-        while #leaderboard > 5 do table.remove(leaderboard) end
-        saveLeaderboard()
-    end
-
-    local restartBtn = display.newRoundedRect(centerX - 80, screenH - 160, 120, 36, 8)
-    restartBtn:setFillColor(1,0.6,0)
-    restartBtn.strokeWidth = 2
-    restartBtn:setStrokeColor(0.8,0.45,0.05)
-    challengeEnd:insert(restartBtn)
-    local restartTxt = display.newText({text = "Herstart", x = restartBtn.x, y = restartBtn.y, font = native.systemFontBold, fontSize = 15})
-    restartTxt:setFillColor(1)
-    challengeEnd:insert(restartTxt)
-
-    local menuBtn = display.newRoundedRect(centerX + 80, screenH - 160, 120, 36, 8)
-    menuBtn:setFillColor(0.2,0.5,0.9)
-    menuBtn.strokeWidth = 2
-    menuBtn:setStrokeColor(0.08,0.35,0.7)
-    challengeEnd:insert(menuBtn)
-    local menuTxt = display.newText({text = "Menu", x = menuBtn.x, y = menuBtn.y, font = native.systemFontBold, fontSize = 15})
-    menuTxt:setFillColor(1)
-    challengeEnd:insert(menuTxt)
-
-    restartBtn:addEventListener("tap", function()
-        challengeEnd.isVisible = false
-        showChallengeSelect()
-    end)
-    menuBtn:addEventListener("tap", function()
-        challengeEnd.isVisible = false
-        startScreen.isVisible = true
-    end)
-
-    -- Toon de topscore onder score (alleen voor 10 seconden)
-    if challengeLength == 10 then
-        local lbY = 190
-        local lbTitle = display.newText({text = "Leaderboard", x = centerX, y = lbY, font = native.systemFontBold, fontSize = 18})
-        lbTitle:setFillColor(0)
-        challengeEnd:insert(lbTitle)
-        lbY = lbY + 30
-        for i,entry in ipairs(leaderboard) do
-            local t = display.newText({text = i .. ". " .. entry.name .. " - " .. entry.score, x = centerX, y = lbY, font = native.systemFont, fontSize = 16})
-            t:setFillColor(0.08)
-            challengeEnd:insert(t)
-            lbY = lbY + 26
-        end
-    end
-end
-
--- Start challenge: naam en tijd
-function startChallenge(name, seconds)
-    challengeName = name
-    challengeCountdown = seconds
-    challengeLength = seconds
-    challengeScore = 0
-    -- prepare play group
-    for i = challengePlay.numChildren,1,-1 do challengePlay[i]:removeSelf() end
-    challengePlay.isVisible = true
-    -- background
-    local bg = display.newRect(centerX, centerY, screenW, screenH)
-    bg:setFillColor(0.95, 0.9, 0.7)
-    challengePlay:insert(bg)
-    -- timer display
-    local timerTxt = display.newText({text = tostring(challengeCountdown), x = screenW * 0.3, y = 60, font = native.systemFontBold, fontSize = 28})
-    challengePlay:insert(timerTxt)
-    -- score display
-    local scoreTxt = display.newText({text = "0", x = screenW * 0.7, y = 60, font = native.systemFontBold, fontSize = 28})
-    challengePlay:insert(scoreTxt)
-    -- clickable kaas
-    local kaasC = display.newImageRect("images/kaas.png", 180, 180)
-    kaasC.x = centerX
-    kaasC.y = centerY
-    challengePlay:insert(kaasC)
-
-    local function onTap()
-        challengeScore = challengeScore + 1
-        scoreTxt.text = tostring(challengeScore)
-    end
-    kaasC:addEventListener("tap", onTap)
-
-    -- countdown timer
-    challengeTimerId = timer.performWithDelay(1000, function()
-        challengeCountdown = challengeCountdown - 1
-        timerTxt.text = tostring(challengeCountdown)
-        if challengeCountdown <= 0 then
-            endChallenge()
-        end
-    end, seconds)
-
-    -- hide select screen
-    challengeSelect.isVisible = false
-end
-
--- Hook challenge button on main menu
-challengeButton:addEventListener("tap", function()
-    showChallengeSelect()
-end)
-
--- End challenge implementation
-
--- Game UI elementen
-
--- Background
 local bg = display.newRect(centerX, centerY, screenW, screenH)
 bg:setFillColor(0.95, 0.9, 0.7)
 gameScreen:insert(bg)
 
--- Sidebar achtergrond
 local sidebarWidth = screenW * 0.35
 local sidebar = display.newRect(screenW - sidebarWidth/2, centerY, sidebarWidth, screenH)
 sidebar:setFillColor(0.2, 0.15, 0.1)
 gameScreen:insert(sidebar)
 
--- Sidebar titel
 local sidebarTitle = display.newText({
     text = "UPGRADES",
     x = screenW - sidebarWidth/2,
@@ -552,7 +529,6 @@ local sidebarTitle = display.newText({
 sidebarTitle:setFillColor(1, 0.85, 0.4)
 gameScreen:insert(sidebarTitle)
 
--- Title text
 local titleText = display.newText({
     text = "   KAAS\nCLICKER",
     x = screenW * 0.30,
@@ -563,7 +539,6 @@ local titleText = display.newText({
 titleText:setFillColor(1, 0.6, 0)
 gameScreen:insert(titleText)
 
--- Kaas teller display
 local counterBg = display.newRoundedRect(screenW * 0.3, 130, 180, 60, 12)
 counterBg:setFillColor(1, 0.85, 0.3)
 counterBg.strokeWidth = 3
@@ -580,15 +555,13 @@ local numberText = display.newText({
 numberText:setFillColor(0.4, 0.2, 0)
 gameScreen:insert(numberText)
 
--- Foto kaas 
 kaasimage = display.newImageRect("images/kaas.png", 140, 140)
 kaasimage.x = screenW * 0.3
 kaasimage.y = centerY
 gameScreen:insert(kaasimage)
 
--- Save knop (staat niet in het spel)
 local saveButton = display.newRoundedRect(screenW * 0.3, screenH - 50, 140, 50, 8)
-saveButton:setFillColor(0.2, 0.8, 0.2)  -- Groen
+saveButton:setFillColor(0.2, 0.8, 0.2)
 saveButton.strokeWidth = 2
 saveButton:setStrokeColor(0.1, 0.6, 0.1)
 gameScreen:insert(saveButton)
@@ -603,7 +576,6 @@ local saveButtonText = display.newText({
 saveButtonText:setFillColor(1, 1, 1)
 gameScreen:insert(saveButtonText)
 
--- Helper functie voor upgrade knoppen
 local function createUpgradeButton(name, cost, yPos, costVar)
     local btnBg = display.newRoundedRect(screenW - sidebarWidth/2, yPos, sidebarWidth - 20, 70, 8)
     btnBg:setFillColor(0.35, 0.25, 0.15)
@@ -625,14 +597,12 @@ local function createUpgradeButton(name, cost, yPos, costVar)
     return btnBg, btnText
 end
 
--- Upgrade buttons in sidebar
 local buyKoeButton, buykoetext = createUpgradeButton("Koe 🐄", koecost, 100, koecost)
 local buyBoerButton, buyboertext = createUpgradeButton("Boer 👨‍🌾", boercost, 190, boercost)
 local buyKaasWinkelButton, buykaaswinkeltext = createUpgradeButton("Kaaswinkel 🏪", kaaswinkelcost, 280, kaaswinkelcost)
 
--- Menu knop
 local menuButton = display.newRoundedRect(269, 500, 100, 50, 8)
-menuButton:setFillColor(0.8, 0.2, 0.2)  -- Rood
+menuButton:setFillColor(0.8, 0.2, 0.2)
 menuButton.strokeWidth = 2
 menuButton:setStrokeColor(0.6, 0.1, 0.1)
 gameScreen:insert(menuButton)
@@ -647,12 +617,7 @@ local menuText = display.newText({
 menuText:setFillColor(1, 1, 1)
 gameScreen:insert(menuText)
 
--- Variabelen om timer IDs op te slaan (zodat we ze kunnen stoppen)
-local productionTimer = nil
-local frenzyTimer = nil
-local autoSaveTimer = nil
 
--- koop functies
 local function koopkoe()
     if kaas >= koecost then
         koe = koe + 1
@@ -663,7 +628,7 @@ local function koopkoe()
     end
 end
 
-   local function koopboer()
+local function koopboer()
     if kaas >= boercost then
         boer = boer + 1
         kaas = kaas - boercost
@@ -683,24 +648,19 @@ local function koopkaaswinkel()
     end
 end
 
-
--- Klik op scherm = +1
 local function onScreenTap()
     if kaas < math.huge then
         kaas = kaas + 1
         totalclicks = totalclicks + 1
 
-        -- koe bonus
         if koe >= 1 then
             kaas = kaas + (1 * koe)
         end
         
-        -- Frenzy bonus
         if frenzyactive then
             kaas = kaas + (4 * (1 + (1 * koe)))
         end
         
--- boer bonus elke 50 clicks +10 kaas per boer
         if boer >= 1 then
             if totalclicks >= 50 then
                 bonusgiven = true
@@ -713,15 +673,8 @@ local function onScreenTap()
         
         numberText.text = math.floor(kaas)
     end
-end 
+end
 
--- event listeners
-kaasimage:addEventListener("tap", onScreenTap)
-buyKoeButton:addEventListener("tap", koopkoe)
-buyBoerButton:addEventListener("tap", koopboer)
-buyKaasWinkelButton:addEventListener("tap", koopkaaswinkel)
-
--- kaaswinkel productie functie
 local function kaaswinkelProduction()
     if kaaswinkel >= 1 then
         kaas = kaas + (2 * kaaswinkel)
@@ -729,7 +682,6 @@ local function kaaswinkelProduction()
     end
 end
 
--- frenzy functie
 local function startFrenzyClicker()
     frenzyactive = true
     local FrenzyNotifier = display.newText {
@@ -745,15 +697,11 @@ local function startFrenzyClicker()
     timer.performWithDelay(5000, function() FrenzyNotifier:removeSelf() end, 1)
 end
 
--- ========== START GAME TRANSITION ==========
 local function startGame(loadSave)
-    -- Verberg start scherm
     startScreen.isVisible = false
     
-    -- Laad game data indien loadSave true is
     if loadSave then
         loadGame()
-        -- Update UI met geladen data
         if numberText then
             numberText.text = math.floor(kaas)
         end
@@ -768,21 +716,16 @@ local function startGame(loadSave)
         end
     end
     
-    -- Toon game scherm
     gameScreen.isVisible = true
     
-    -- Start alle timers en sla IDs op (zodat we ze later kunnen stoppen)
     productionTimer = timer.performWithDelay(1000, kaaswinkelProduction, 0)
     frenzyTimer = timer.performWithDelay(30000, startFrenzyClicker, 0)
-    autoSaveTimer = timer.performWithDelay(30000, saveGame, 0)  -- Auto-save elke 30 sec
+    autoSaveTimer = timer.performWithDelay(30000, saveGame, 0)
 end
 
--- ========== TERUG NAAR MENU FUNCTIE ==========
 local function backToMenu()
-    -- Sla eerst de game op voordat we teruggaan
     saveGame()
     
-    -- Stop alle timers (anders blijven ze draaien in de achtergrond!)
     if productionTimer then 
         timer.cancel(productionTimer) 
         productionTimer = nil
@@ -796,26 +739,28 @@ local function backToMenu()
         autoSaveTimer = nil
     end
     
-    -- Verberg game scherm
     gameScreen.isVisible = false
-    
-    -- Toon start scherm
     startScreen.isVisible = true
 end
 
--- Event Listerners voor knoppen
--- Verbind play button (nieuwe game)
+
 playButton:addEventListener("tap", function()
     startGame(false)
 end)
 
--- Verbind menu button (terug naar hoofdmenu)
+creditButton:addEventListener("tap", function()
+    startScreen.isVisible = false
+    creditsScreen.isVisible = true
+end)
+
+challengeButton:addEventListener("tap", function()
+    showChallengeSelect()
+end)
+
 menuButton:addEventListener("tap", backToMenu)
 
--- Verbind save button (handmatig opslaan)
 saveButton:addEventListener("tap", function()
     saveGame()
-    -- Toon kort een "Opgeslagen!" bericht
     local savedMsg = display.newText({
         text = "✓ Opgeslagen!",
         x = screenW * 0.3,
@@ -825,8 +770,12 @@ saveButton:addEventListener("tap", function()
     })
     savedMsg:setFillColor(0, 1, 0)
     gameScreen:insert(savedMsg)
-    -- Verwijder het bericht na 1.5 seconden
     timer.performWithDelay(1500, function() 
         savedMsg:removeSelf() 
     end)
 end)
+
+kaasimage:addEventListener("tap", onScreenTap)
+buyKoeButton:addEventListener("tap", koopkoe)
+buyBoerButton:addEventListener("tap", koopboer)
+buyKaasWinkelButton:addEventListener("tap", koopkaaswinkel)
