@@ -106,7 +106,7 @@ local startTitle = display.newText({
     x = centerX,
     y = centerY - 280,
     font = native.systemFontBold,
-    fontSize = 50,
+    fontSize = 65,
     align = "center"
 })
 startTitle:setFillColor(1, 0.6, 0)
@@ -116,7 +116,7 @@ local cheeseIcon = display.newText({
     text = "🧀",
     x = centerX,
     y = centerY - 170,
-    fontSize = 50
+    fontSize = 70
 })
 startScreen:insert(cheeseIcon)
 
@@ -136,31 +136,8 @@ local playText = display.newText({
 playText:setFillColor(1, 1, 1)
 startScreen:insert(playText)
 
--- Resume knop (alleen zichtbaar als er een save bestand is)
-local resumeButton = display.newRoundedRect(centerX, centerY + 65, 250, 70, 12)
-resumeButton:setFillColor(0.4, 0.6, 0.8)
-resumeButton.strokeWidth = 3
-resumeButton:setStrokeColor(0.3, 0.4, 0.6)
-startScreen:insert(resumeButton)
-
-local resumeText = display.newText({
-    text = "HERVAT SPEL",
-    x = centerX,
-    y = centerY + 65,
-    font = native.systemFontBold,
-    fontSize = 30
-})
-resumeText:setFillColor(1, 1, 1)
-startScreen:insert(resumeText)
-
--- Verberg resume knop als er geen save is
-if not hasSaveFile() then
-    resumeButton.isVisible = false
-    resumeText.isVisible = false
-end
-
 -- Challenge Mode knop
-local challengeButton = display.newRoundedRect(centerX, centerY + 150, 250, 70, 12)
+local challengeButton = display.newRoundedRect(centerX, centerY + 70, 250, 70, 12)
 challengeButton:setFillColor(0.6, 0.2, 0.8)
 challengeButton.strokeWidth = 3
 challengeButton:setStrokeColor(0.5, 0.1, 0.6)
@@ -169,7 +146,7 @@ startScreen:insert(challengeButton)
 local challengeText = display.newText({
     text = "CHALLENGE MODE",
     x = centerX,
-    y = centerY + 150,
+    y = centerY + 70,
     font = native.systemFontBold,
     fontSize = 25
 })
@@ -255,7 +232,7 @@ backBtnBg:addEventListener("tap", closeCredits)
 backBtn:addEventListener("tap", closeCredits)
 
 -- Credits knop op startscherm (onderaan)
-local creditButton = display.newRoundedRect(centerX, centerY + 235, 250, 70, 12)
+local creditButton = display.newRoundedRect(centerX, centerY + 160, 250, 70, 12)
 creditButton:setFillColor(0.3, 0.3, 0.3)
 creditButton.strokeWidth = 3
 creditButton:setStrokeColor(0.5, 0.5, 0.5)
@@ -264,7 +241,7 @@ startScreen:insert(creditButton)
 local creditText = display.newText({
     text = "CREDITS",
     x = centerX,
-    y = centerY + 235,
+    y = centerY + 160,
     font = native.systemFontBold,
     fontSize = 30
 })
@@ -277,17 +254,17 @@ creditButton:addEventListener("tap", function()
     creditsScreen.isVisible = true    -- Toon credits scherm
 end)
 
--- ========== CHALLENGE MODE IMPLEMENTATIE ==========
+-- CHALLENGE MODE IMPLEMENTATIe
 -- Leaderboard opslaan/laden
 local leaderboardFile = "challenge_leaderboard.json"
 local leaderboard = {}
 
 local function loadLeaderboard()
     local path = system.pathForFile(leaderboardFile, system.DocumentsDirectory)
-    local f = io.open(path, "r")
-    if f then
-        local contents = f:read("*a")
-        io.close(f)
+    local OpenLeaderBoardPath = io.open(path, "r")
+    if OpenLeaderBoardPath then
+        local contents = OpenLeaderBoardPath:read("*a")
+        io.close(OpenLeaderBoardPath)
         local data = json.decode(contents)
         if data then leaderboard = data end
     end
@@ -295,10 +272,10 @@ end
 
 local function saveLeaderboard()
     local path = system.pathForFile(leaderboardFile, system.DocumentsDirectory)
-    local f = io.open(path, "w")
-    if f then
-        f:write(json.encode(leaderboard))
-        io.close(f)
+    local OpenLeaderBoardPath = io.open(path, "w")
+    if OpenLeaderBoardPath then
+        OpenLeaderBoardPath:write(json.encode(leaderboard))
+        io.close(OpenLeaderBoardPath)
     end
 end
 
@@ -344,7 +321,7 @@ local function showChallengeSelect()
     instructions:setFillColor(0)
     challengeSelect:insert(instructions)
 
-    -- create buttons in 2 vertical columns (5 per column)
+    -- Tijd keuze knoppen
     local btnW, btnH = 140, 46
     local leftX = centerX - 90
     local rightX = centerX + 90
@@ -603,13 +580,13 @@ local numberText = display.newText({
 numberText:setFillColor(0.4, 0.2, 0)
 gameScreen:insert(numberText)
 
--- Kaas foto (klikbare kaas)
+-- Foto kaas 
 kaasimage = display.newImageRect("images/kaas.png", 140, 140)
 kaasimage.x = screenW * 0.3
 kaasimage.y = centerY
 gameScreen:insert(kaasimage)
 
--- Save knop (onderaan midden) - slaat game handmatig op
+-- Save knop (staat niet in het spel)
 local saveButton = display.newRoundedRect(screenW * 0.3, screenH - 50, 140, 50, 8)
 saveButton:setFillColor(0.2, 0.8, 0.2)  -- Groen
 saveButton.strokeWidth = 2
@@ -720,7 +697,7 @@ local function onScreenTap()
         
         -- Frenzy bonus
         if frenzyactive then
-            kaas = kaas + (4 * (1 + (0.5 * koe)))
+            kaas = kaas + (4 * (1 + (1 * koe)))
         end
         
 -- boer bonus elke 50 clicks +10 kaas per boer
@@ -773,7 +750,7 @@ local function startGame(loadSave)
     -- Verberg start scherm
     startScreen.isVisible = false
     
-    -- Laad game data als het een resume is
+    -- Laad game data indien loadSave true is
     if loadSave then
         loadGame()
         -- Update UI met geladen data
@@ -824,23 +801,12 @@ local function backToMenu()
     
     -- Toon start scherm
     startScreen.isVisible = true
-    
-    -- Update resume knop zichtbaarheid (nu is er een save bestand)
-    if resumeButton and resumeText then
-        resumeButton.isVisible = true
-        resumeText.isVisible = true
-    end
 end
 
 -- Event Listerners voor knoppen
 -- Verbind play button (nieuwe game)
 playButton:addEventListener("tap", function()
     startGame(false)
-end)
-
--- Verbind resume button (laad opgeslagen game)
-resumeButton:addEventListener("tap", function()
-    startGame(true)
 end)
 
 -- Verbind menu button (terug naar hoofdmenu)
