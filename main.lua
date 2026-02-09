@@ -322,7 +322,7 @@ local function showChallengeSelect()
     challengeEnd.isVisible = false
     challengeSelect:toFront()
     challengeSelect.isVisible = true
-    -- clear any previous children (simple approach)
+    -- Verwijder alle eerdere kinderen (eenvoudige aanpak)
     for i = challengeSelect.numChildren,1,-1 do
         local child = challengeSelect[i]
         child:removeSelf()
@@ -368,7 +368,7 @@ local function showChallengeSelect()
 
         local function onSelect()
             if t == 10 then
-                -- ask name only for 10s: show a small input panel
+                -- Vraag alleen om de naam gedurende 10 seconden: toon een klein invoerpaneel
                 local panel = display.newRoundedRect(centerX, centerY, screenW - 80, 160, 12)
                 panel:setFillColor(0.06,0.04,0.02)
                 panel.strokeWidth = 2
@@ -405,7 +405,7 @@ local function showChallengeSelect()
         b:addEventListener("tap", onSelect)
     end
 
-    -- back to menu
+    -- terug naar menu
     local back = display.newText({text = "Terug", x = centerX, y = screenH - 50, font = native.systemFontBold, fontSize = 18})
     back:setFillColor(0.2)
     challengeSelect:insert(back)
@@ -415,7 +415,7 @@ local function showChallengeSelect()
     end)
 end
 
--- Challenge play variables
+-- challenge play variabelen
 local challengeTimerId = nil
 local challengeCountdown = 0
 local challengeScore = 0
@@ -425,7 +425,7 @@ local challengeLength = 0
 local function endChallenge()
     -- stop timer
     if challengeTimerId then timer.cancel(challengeTimerId); challengeTimerId = nil end
-    -- remove play group
+    -- speelgroep verwijderen
     if challengePlay then
         for i = challengePlay.numChildren,1,-1 do
             challengePlay[i]:removeSelf()
@@ -433,7 +433,7 @@ local function endChallenge()
     end
     challengePlay.isVisible = false
 
-    -- show end screen
+    -- toon eindscherm
     for i = challengeEnd.numChildren,1,-1 do
         challengeEnd[i]:removeSelf()
     end
@@ -449,7 +449,7 @@ local function endChallenge()
     local scoreTxt = display.newText({text = "Score: " .. tostring(challengeScore), x = centerX, y = 140, font = native.systemFontBold, fontSize = 22})
     challengeEnd:insert(scoreTxt)
 
-    -- update leaderboard only for 10s challenges
+    -- Update het scorebord alleen voor uitdagingen van 10 seconden.
     if challengeLength == 10 then
         table.insert(leaderboard, {name = challengeName, score = challengeScore})
         table.sort(leaderboard, function(a,b) return a.score > b.score end)
@@ -457,7 +457,7 @@ local function endChallenge()
         saveLeaderboard()
     end
 
-    local restartBtn = display.newRoundedRect(centerX - 80, screenH - 150, 120, 36, 8)
+    local restartBtn = display.newRoundedRect(centerX - 80, screenH - 160, 120, 36, 8)
     restartBtn:setFillColor(1,0.6,0)
     restartBtn.strokeWidth = 2
     restartBtn:setStrokeColor(0.8,0.45,0.05)
@@ -466,7 +466,7 @@ local function endChallenge()
     restartTxt:setFillColor(1)
     challengeEnd:insert(restartTxt)
 
-    local menuBtn = display.newRoundedRect(centerX + 80, screenH - 150, 120, 36, 8)
+    local menuBtn = display.newRoundedRect(centerX + 80, screenH - 160, 120, 36, 8)
     menuBtn:setFillColor(0.2,0.5,0.9)
     menuBtn.strokeWidth = 2
     menuBtn:setStrokeColor(0.08,0.35,0.7)
@@ -484,7 +484,7 @@ local function endChallenge()
         startScreen.isVisible = true
     end)
 
-    -- show top leaderboard under score (only for 10s)
+    -- Toon de topscore onder score (alleen voor 10 seconden)
     if challengeLength == 10 then
         local lbY = 190
         local lbTitle = display.newText({text = "Leaderboard", x = centerX, y = lbY, font = native.systemFontBold, fontSize = 18})
