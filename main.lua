@@ -179,62 +179,80 @@ startScreen:insert(challengeText)
 
 
 -- Credits scherm elementen
+-- Credits scherm elementen (geüpdatet styling)
 
--- Zwarte achtergrond voor credits
+-- Donkere overlay achtergrond
 local creditsBg = display.newRect(centerX, centerY, screenW, screenH)
-creditsBg:setFillColor(0, 0, 0)  -- Zwart
+creditsBg:setFillColor(0, 0, 0, 0.92)
 creditsScreen:insert(creditsBg)
 
--- Titel bovenaan
+-- Panel voor content
+local panelMargin = 40
+local panel = display.newRoundedRect(centerX, centerY, screenW - panelMargin * 2, screenH - 160, 12)
+panel:setFillColor(0.06, 0.04, 0.02)
+panel.strokeWidth = 2
+panel:setStrokeColor(0.12, 0.08, 0.02)
+creditsScreen:insert(panel)
+
+-- Header met klein icoon
+local headerY = panel.y - panel.height/2 + 50
+local cheeseIconSmall = display.newText({ text = "🧀", x = centerX - 80, y = headerY, font = native.systemFontBold, fontSize = 36 })
+creditsScreen:insert(cheeseIconSmall)
+
 local creditsTitle = display.newText({
-    text = "Cheese Clicker",
-    x = centerX,
-    y = 75,
+    text = "CHEESE",
+    x = centerX + 10,
+    y = headerY,
     font = native.systemFontBold,
-    fontSize = 30
+    fontSize = 32,
+    align = "left"
 })
-creditsTitle:setFillColor(1, 1, 1)  -- Wit
+creditsTitle:setFillColor(1, 0.85, 0.3)
 creditsScreen:insert(creditsTitle)
 
--- Namen van mijn en mandu
-local makers = display.newText({
-    text = "Gemaakt door\nMandu Ismail\nJalen Versteilen",
-    x = centerX,
-    y = centerY - 50,
-    font = native.systemFont,
-    fontSize = 15,
-    align = "center"
-})
-makers:setFillColor(1, 1, 1)  -- Wit
-creditsScreen:insert(makers)
+-- Scheidingslijn
+local divider = display.newRect(centerX, creditsTitle.y + 30, panel.width - 40, 2)
+divider:setFillColor(0.18, 0.18, 0.18)
+creditsScreen:insert(divider)
 
--- Bedankbericht
-local thanks = display.newText({
-    text = "Bedankt voor het spelen!",
-    x = centerX,
-    y = centerY + 75,
-    font = native.systemFontBold,
-    fontSize = 15
-})
-thanks:setFillColor(1, 1, 1)  -- Wit
+-- Content: makers en bedanktekst netjes uitgelijnd
+local contentYStart = divider.y + 30
+local lineSpacing = 32
+
+local madeByLabel = display.newText({ text = "Gemaakt door", x = centerX, y = contentYStart, font = native.systemFontBold, fontSize = 18 })
+madeByLabel:setFillColor(1, 1, 1)
+creditsScreen:insert(madeByLabel)
+
+local name1 = display.newText({ text = "Mandu Ismail", x = centerX, y = madeByLabel.y + lineSpacing, font = native.systemFont, fontSize = 16 })
+name1:setFillColor(0.95, 0.9, 0.7)
+creditsScreen:insert(name1)
+
+local name2 = display.newText({ text = "Jalen Versteilen", x = centerX, y = name1.y + lineSpacing, font = native.systemFont, fontSize = 16 })
+name2:setFillColor(0.95, 0.9, 0.7)
+creditsScreen:insert(name2)
+
+local thanks = display.newText({ text = "Bedankt voor het spelen!", x = centerX, y = name2.y + lineSpacing + 8, font = native.systemFontBold, fontSize = 18 })
+thanks:setFillColor(1, 1, 1)
 creditsScreen:insert(thanks)
 
--- Terug knop naar startscherm
-local backBtn = display.newText({
-    text = "Terug",
-    x = centerX,
-    y = screenH - 150,
-    font = native.systemFontBold,
-    fontSize = 15
-})
-backBtn:setFillColor(1, 1, 1)  -- Wit
+-- Terug knop als ronde knop onderaan paneel
+local backBtnBg = display.newRoundedRect(centerX, panel.y + panel.height/2 - 40, 160, 48, 10)
+backBtnBg:setFillColor(1, 0.6, 0)
+backBtnBg.strokeWidth = 2
+backBtnBg:setStrokeColor(0.8, 0.4, 0)
+creditsScreen:insert(backBtnBg)
+
+local backBtn = display.newText({ text = "Terug", x = centerX, y = backBtnBg.y, font = native.systemFontBold, fontSize = 18 })
+backBtn:setFillColor(1, 1, 1)
 creditsScreen:insert(backBtn)
 
--- Functie voor terug knop - gaat terug naar startscherm
-backBtn:addEventListener("tap", function()
-    creditsScreen.isVisible = false  -- Verberg credits
-    startScreen.isVisible = true      -- Toon startscherm
-end)
+local function closeCredits()
+    creditsScreen.isVisible = false
+    startScreen.isVisible = true
+end
+
+backBtnBg:addEventListener("tap", closeCredits)
+backBtn:addEventListener("tap", closeCredits)
 
 -- Credits knop op startscherm (onderaan)
 local creditButton = display.newRoundedRect(centerX, centerY + 235, 250, 70, 12)
@@ -258,6 +276,280 @@ creditButton:addEventListener("tap", function()
     startScreen.isVisible = false     -- Verberg startscherm
     creditsScreen.isVisible = true    -- Toon credits scherm
 end)
+
+-- ========== CHALLENGE MODE IMPLEMENTATIE ==========
+-- Leaderboard opslaan/laden
+local leaderboardFile = "challenge_leaderboard.json"
+local leaderboard = {}
+
+local function loadLeaderboard()
+    local path = system.pathForFile(leaderboardFile, system.DocumentsDirectory)
+    local f = io.open(path, "r")
+    if f then
+        local contents = f:read("*a")
+        io.close(f)
+        local data = json.decode(contents)
+        if data then leaderboard = data end
+    end
+end
+
+local function saveLeaderboard()
+    local path = system.pathForFile(leaderboardFile, system.DocumentsDirectory)
+    local f = io.open(path, "w")
+    if f then
+        f:write(json.encode(leaderboard))
+        io.close(f)
+    end
+end
+
+loadLeaderboard()
+
+-- Challenge groups
+local challengeSelect = ChallengeModeScreen
+challengeSelect.isVisible = false
+local challengePlay = display.newGroup()
+local challengeEnd = display.newGroup()
+challengePlay.isVisible = false
+challengeEnd.isVisible = false
+
+-- Helper to show start screen of challenge mode (tijd kiezen)
+local times = {1,2,3,4,5,10,15,20,25,30}
+local function showChallengeSelect()
+    startScreen.isVisible = false
+    creditsScreen.isVisible = false
+    gameScreen.isVisible = false
+    challengePlay.isVisible = false
+    challengeEnd.isVisible = false
+    challengeSelect:toFront()
+    challengeSelect.isVisible = true
+    -- clear any previous children (simple approach)
+    for i = challengeSelect.numChildren,1,-1 do
+        local child = challengeSelect[i]
+        child:removeSelf()
+    end
+
+    local bg = display.newRect(centerX, centerY, screenW, screenH)
+    bg:setFillColor(0.95, 0.9, 0.7)
+    challengeSelect:insert(bg)
+
+    local title = display.newText({text = "CHALLENGE MODE", x = centerX, y = 60, font = native.systemFontBold, fontSize = 28})
+    title:setFillColor(1,0.6,0)
+    challengeSelect:insert(title)
+
+        local title = display.newText({text = "(Kies 10 seconden voor scores)", x = centerX, y = 15, font = native.systemFontBold, fontSize = 12})
+    title:setFillColor(0,0.0,0)
+    challengeSelect:insert(title)
+
+    local instructions = display.newText({text = "Kies een tijd (seconden):", x = centerX, y = 110, font = native.systemFont, fontSize = 16})
+    instructions:setFillColor(0)
+    challengeSelect:insert(instructions)
+
+    -- create buttons in 2 vertical columns (5 per column)
+    local btnW, btnH = 140, 46
+    local leftX = centerX - 90
+    local rightX = centerX + 90
+    local startY = 160
+    local spacingY = 12
+    for i, t in ipairs(times) do
+        local col = (i <= 5) and 1 or 2
+        local indexInCol = ((i - 1) % 5) + 1
+        local x = (col == 1) and leftX or rightX
+        local y = startY + (indexInCol - 1) * (btnH + spacingY)
+
+        local b = display.newRoundedRect(x, y, btnW, btnH, 8)
+        b:setFillColor(1, 0.85, 0.3)
+        b.strokeWidth = 2
+        b:setStrokeColor(0.8, 0.65, 0.2)
+        challengeSelect:insert(b)
+
+        local bt = display.newText({text = tostring(t) .. "s", x = x, y = y, font = native.systemFontBold, fontSize = 18})
+        bt:setFillColor(0.08)
+        challengeSelect:insert(bt)
+
+        local function onSelect()
+            if t == 10 then
+                -- ask name only for 10s: show a small input panel
+                local panel = display.newRoundedRect(centerX, centerY, screenW - 80, 160, 12)
+                panel:setFillColor(0.06,0.04,0.02)
+                panel.strokeWidth = 2
+                panel:setStrokeColor(0.12,0.08,0.02)
+                challengeSelect:insert(panel)
+
+                local nameField = native.newTextField(centerX, centerY - 10, 260, 36)
+                nameField.placeholder = "Voer je naam in"
+
+                local startBtn = display.newRoundedRect(centerX, centerY + 40, 140, 40, 8)
+                startBtn:setFillColor(1,0.6,0)
+                challengeSelect:insert(startBtn)
+                local startTxt = display.newText({text = "START", x = centerX, y = centerY + 40, font = native.systemFontBold, fontSize = 16})
+                startTxt:setFillColor(1)
+                challengeSelect:insert(startTxt)
+
+                local function begin()
+                    local playerName = nameField.text
+                    if not playerName or playerName == "" then playerName = "Anon" end
+                    if nameField and nameField.removeSelf then nameField:removeSelf() end
+                    nameField = nil
+                    if panel and panel.removeSelf then panel:removeSelf() end
+                    if startBtn and startBtn.removeSelf then startBtn:removeSelf() end
+                    if startTxt and startTxt.removeSelf then startTxt:removeSelf() end
+                    startChallenge(playerName, t)
+                end
+
+                startBtn:addEventListener("tap", begin)
+            else
+                startChallenge("Anon", t)
+            end
+        end
+
+        b:addEventListener("tap", onSelect)
+    end
+
+    -- back to menu
+    local back = display.newText({text = "Terug", x = centerX, y = screenH - 50, font = native.systemFontBold, fontSize = 18})
+    back:setFillColor(0.2)
+    challengeSelect:insert(back)
+    back:addEventListener("tap", function()
+        challengeSelect.isVisible = false
+        startScreen.isVisible = true
+    end)
+end
+
+-- Challenge play variables
+local challengeTimerId = nil
+local challengeCountdown = 0
+local challengeScore = 0
+local challengeName = ""
+local challengeLength = 0
+
+local function endChallenge()
+    -- stop timer
+    if challengeTimerId then timer.cancel(challengeTimerId); challengeTimerId = nil end
+    -- remove play group
+    if challengePlay then
+        for i = challengePlay.numChildren,1,-1 do
+            challengePlay[i]:removeSelf()
+        end
+    end
+    challengePlay.isVisible = false
+
+    -- show end screen
+    for i = challengeEnd.numChildren,1,-1 do
+        challengeEnd[i]:removeSelf()
+    end
+    challengeEnd.isVisible = true
+    local bg = display.newRect(centerX, centerY, screenW, screenH)
+    bg:setFillColor(0.95, 0.9, 0.7)
+    challengeEnd:insert(bg)
+
+    local title = display.newText({text = "Tijd is om!", x = centerX, y = 80, font = native.systemFontBold, fontSize = 28})
+    title:setFillColor(1,0.2,0.2)
+    challengeEnd:insert(title)
+
+    local scoreTxt = display.newText({text = "Score: " .. tostring(challengeScore), x = centerX, y = 140, font = native.systemFontBold, fontSize = 22})
+    challengeEnd:insert(scoreTxt)
+
+    -- update leaderboard only for 10s challenges
+    if challengeLength == 10 then
+        table.insert(leaderboard, {name = challengeName, score = challengeScore})
+        table.sort(leaderboard, function(a,b) return a.score > b.score end)
+        while #leaderboard > 5 do table.remove(leaderboard) end
+        saveLeaderboard()
+    end
+
+    local restartBtn = display.newRoundedRect(centerX - 80, screenH - 150, 120, 36, 8)
+    restartBtn:setFillColor(1,0.6,0)
+    restartBtn.strokeWidth = 2
+    restartBtn:setStrokeColor(0.8,0.45,0.05)
+    challengeEnd:insert(restartBtn)
+    local restartTxt = display.newText({text = "Herstart", x = restartBtn.x, y = restartBtn.y, font = native.systemFontBold, fontSize = 15})
+    restartTxt:setFillColor(1)
+    challengeEnd:insert(restartTxt)
+
+    local menuBtn = display.newRoundedRect(centerX + 80, screenH - 150, 120, 36, 8)
+    menuBtn:setFillColor(0.2,0.5,0.9)
+    menuBtn.strokeWidth = 2
+    menuBtn:setStrokeColor(0.08,0.35,0.7)
+    challengeEnd:insert(menuBtn)
+    local menuTxt = display.newText({text = "Menu", x = menuBtn.x, y = menuBtn.y, font = native.systemFontBold, fontSize = 15})
+    menuTxt:setFillColor(1)
+    challengeEnd:insert(menuTxt)
+
+    restartBtn:addEventListener("tap", function()
+        challengeEnd.isVisible = false
+        showChallengeSelect()
+    end)
+    menuBtn:addEventListener("tap", function()
+        challengeEnd.isVisible = false
+        startScreen.isVisible = true
+    end)
+
+    -- show top leaderboard under score (only for 10s)
+    if challengeLength == 10 then
+        local lbY = 190
+        local lbTitle = display.newText({text = "Leaderboard", x = centerX, y = lbY, font = native.systemFontBold, fontSize = 18})
+        lbTitle:setFillColor(0)
+        challengeEnd:insert(lbTitle)
+        lbY = lbY + 30
+        for i,entry in ipairs(leaderboard) do
+            local t = display.newText({text = i .. ". " .. entry.name .. " - " .. entry.score, x = centerX, y = lbY, font = native.systemFont, fontSize = 16})
+            t:setFillColor(0.08)
+            challengeEnd:insert(t)
+            lbY = lbY + 26
+        end
+    end
+end
+
+-- Start challenge: naam en tijd
+function startChallenge(name, seconds)
+    challengeName = name
+    challengeCountdown = seconds
+    challengeLength = seconds
+    challengeScore = 0
+    -- prepare play group
+    for i = challengePlay.numChildren,1,-1 do challengePlay[i]:removeSelf() end
+    challengePlay.isVisible = true
+    -- background
+    local bg = display.newRect(centerX, centerY, screenW, screenH)
+    bg:setFillColor(0.95, 0.9, 0.7)
+    challengePlay:insert(bg)
+    -- timer display
+    local timerTxt = display.newText({text = tostring(challengeCountdown), x = screenW * 0.3, y = 60, font = native.systemFontBold, fontSize = 28})
+    challengePlay:insert(timerTxt)
+    -- score display
+    local scoreTxt = display.newText({text = "0", x = screenW * 0.7, y = 60, font = native.systemFontBold, fontSize = 28})
+    challengePlay:insert(scoreTxt)
+    -- clickable kaas
+    local kaasC = display.newImageRect("images/kaas.png", 180, 180)
+    kaasC.x = centerX
+    kaasC.y = centerY
+    challengePlay:insert(kaasC)
+
+    local function onTap()
+        challengeScore = challengeScore + 1
+        scoreTxt.text = tostring(challengeScore)
+    end
+    kaasC:addEventListener("tap", onTap)
+
+    -- countdown timer
+    challengeTimerId = timer.performWithDelay(1000, function()
+        challengeCountdown = challengeCountdown - 1
+        timerTxt.text = tostring(challengeCountdown)
+        if challengeCountdown <= 0 then
+            endChallenge()
+        end
+    end, seconds)
+
+    -- hide select screen
+    challengeSelect.isVisible = false
+end
+
+-- Hook challenge button on main menu
+challengeButton:addEventListener("tap", function()
+    showChallengeSelect()
+end)
+
+-- End challenge implementation
 
 -- Game UI elementen
 
